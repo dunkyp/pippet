@@ -11,12 +11,6 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install sbcl
       run: sudo apt install sbcl
-    - name: Install quicklisp
-      run: curl -O https://beta.quicklisp.org/quicklisp.lisp && echo '(load "quicklisp.lisp")(quicklisp-quickstart:install)' > install.lisp && sbcl --load quicklisp.lisp --script install.lisp &&
-        echo '(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
-                                         (user-homedir-pathname))))
-                (when (probe-file quicklisp-init)
-              (load quicklisp-init)))' > ~/.sbclrc
-    - name: Run Test
-      run: cp -r /home/runner/work/pippet/pippet ~/quicklisp/local-projects && echo "(ql:quickload :rove)(rove:run :pippet/tests)" > test.lisp && sbcl --script test.lisp
+    - name: Install quicklisp && TEST
+      run: cp -r /home/runner/work/pippet/pippet ~/quicklisp/local-projects && curl -O https://beta.quicklisp.org/quicklisp.lisp && echo '(load "quicklisp.lisp")(quicklisp-quickstart:install)(ql:quickload :rove)(rove:run :pippet/tests)' > install.lisp && sbcl --load quicklisp.lisp --script install.lisp
 
