@@ -17,4 +17,6 @@ jobs:
                                          (user-homedir-pathname))))
                 (when (probe-file quicklisp-init)
               (load quicklisp-init)))' > ~/.sbclrc
+    - name: Run Test
+      run: cp -r pippet ~/quicklisp/local-projects && echo "(ql:quickload :rove)(rove:run :pippet/tests)" > test.lisp && sbcl --script test.lisp
 
