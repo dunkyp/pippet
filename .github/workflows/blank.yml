@@ -12,7 +12,7 @@ jobs:
     - name: Install sbcl
       run: sudo apt install sbcl
     - name: Install quicklisp
-      run: curl -O https://beta.quicklisp.org/quicklisp.lisp && sbcl --load quicklisp.lisp --script (quicklisp-quickstart:install) && 
+      run: curl -O https://beta.quicklisp.org/quicklisp.lisp && sbcl --load quicklisp.lisp --script "(quicklisp-quickstart:install)" && 
            echo '(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
                                                            (user-homedir-pathname))))
                       (when (probe-file quicklisp-init)
