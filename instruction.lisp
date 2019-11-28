@@ -12,7 +12,7 @@
            ; OPCODES
            #:NOP #:LD #:JP #:JR #:INC #:DEC
            #:ADD #:SUB #:RLA #:RLCA #:RRA
-           #:RRCA
+           #:RRCA #:CPL
            ; REGISTERS
            #:A #:B #:C #:D #:E #:F #:H #:L
            #:AF #:BC #:DE #:HL #:SP #:PC

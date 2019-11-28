@@ -97,3 +97,10 @@
   (step-cpu *CPU* (assemble "RRA"))
   (ok (= (PC *CPU*) 1))
   (ok (= (A *CPU*) 2)))
+
+(deftest cpl-instruction
+  (setf (PC *CPU*) 0)
+  (setf (A *CPU*) 1)
+  (step-cpu *CPU* (assemble "CPL"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (A *CPU*) #xFE)))

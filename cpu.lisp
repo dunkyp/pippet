@@ -230,6 +230,9 @@
          (eq (instruction-mnemonic instruction) 'RRA))
      (handle-rra-instruction cpu)
      (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'CPL)
+     (setf (A cpu) (logxor #xFF (A cpu)))
+     (next-instruction instruction cpu))
     (t (error "Unhandled opcode"))))
 
 (defun step-cpu (cpu mmu)
