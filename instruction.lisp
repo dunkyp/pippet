@@ -11,7 +11,7 @@
            #:operand-bytes
            ; OPCODES
            #:NOP #:LD #:JP #:JR #:INC #:DEC
-           #:ADD #:SUB
+           #:ADD #:SUB #:RLA #:RLCA
            ; REGISTERS
            #:A #:B #:C #:D #:E #:F #:H #:L
            #:AF #:BC #:DE #:HL #:SP #:PC

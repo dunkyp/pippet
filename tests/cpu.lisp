@@ -83,3 +83,10 @@
   (step-cpu *CPU* (assemble "SUB B"))
   (ok (= (PC *CPU*) 1))
   (ok (= (A *CPU*) 107)))
+
+(deftest rla-instruction
+  (setf (PC *CPU*) 0)
+  (setf (A *CPU*) 2)
+  (step-cpu *CPU* (assemble "RLA"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (A *CPU*) 4)))

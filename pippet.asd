@@ -6,7 +6,8 @@
     :author "Duncan Paterson"
     :license  "MIT"
     :version "0.0.1"
-    :depends-on ("pippet/cpu")
+    :depends-on ("cl-utilities"
+                 "pippet/cpu")
     :in-order-to ((test-op (test-op "pippet/tests"))))
 
 (defsystem "pippet/tests"

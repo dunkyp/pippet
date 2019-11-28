@@ -4,6 +4,7 @@
   (:nicknames #:pippet/cpu)
   (:use #:cl
         #:pippet/instruction)
+  (:import-from :cl-utilities :rotate-byte)
   (:export
    #:gameboy
    #:make-mmu
@@ -179,6 +180,16 @@
          (value (get-value operand 1 cpu mmu)))
     (set-value (- value 1) operand 1 cpu mmu)))
 
+
+(defun rotate-left (integer amount)
+  (rotate-byte amount (byte 8 0) integer))
+
+(defun rotate-right (integer amount)
+  (rotate-left (- integer) amount))
+
+(defun handle-rla-instruction (cpu)
+  (setf (A cpu) (rotate-left (A cpu) 1)))
+
 (defun execute-instruction (instruction cpu mmu)
   (cond
     ((eq (instruction-mnemonic instruction) 'NOP)
@@ -207,6 +218,10 @@
      (next-instruction instruction cpu))
     ((eq (instruction-mnemonic instruction) 'SUB)
      (handle-sub-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((or (eq (instruction-mnemonic instruction) 'RLCA)
+         (eq (instruction-mnemonic instruction) 'RLA))
+     (handle-rla-instruction cpu)
      (next-instruction instruction cpu))
     (t (error "Unhandled opcode"))))
 
