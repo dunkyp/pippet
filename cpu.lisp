@@ -185,10 +185,13 @@
   (rotate-byte amount (byte 8 0) integer))
 
 (defun rotate-right (integer amount)
-  (rotate-left (- integer) amount))
+  (rotate-left integer (- amount)))
 
 (defun handle-rla-instruction (cpu)
   (setf (A cpu) (rotate-left (A cpu) 1)))
+
+(defun handle-rra-instruction (cpu)
+  (setf (A cpu) (rotate-right (A cpu) 1)))
 
 (defun execute-instruction (instruction cpu mmu)
   (cond
@@ -222,6 +225,10 @@
     ((or (eq (instruction-mnemonic instruction) 'RLCA)
          (eq (instruction-mnemonic instruction) 'RLA))
      (handle-rla-instruction cpu)
+     (next-instruction instruction cpu))
+    ((or (eq (instruction-mnemonic instruction) 'RRCA)
+         (eq (instruction-mnemonic instruction) 'RRA))
+     (handle-rra-instruction cpu)
      (next-instruction instruction cpu))
     (t (error "Unhandled opcode"))))
 
