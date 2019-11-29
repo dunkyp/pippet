@@ -20,8 +20,8 @@ jobs:
         ./configure
         make
         sudo make install
-        ros install sbcl
-        ros use sbcl
+        ros install sbcl/1.5.9
+        ros use sbcl/1.5.9
         ros setup
     - name: Test
       run: |
