@@ -610,7 +610,7 @@
          (position (instruction-position instruction))
          (bytes (instruction-bytes instruction)))
     (if (> position 255)
-        (concatenate 'list (list #xCB (- position 255)) (loop for i from 2 upto bytes collect 0))
+        (concatenate 'list (list #xCB (- position 256)) (loop for i from 2 upto bytes collect 0))
         (concatenate 'list (list position) (loop for i from 2 upto bytes collect 0)))))
 
 (defun assemble (source &optional (pad 1))
