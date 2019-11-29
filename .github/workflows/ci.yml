@@ -21,8 +21,8 @@ jobs:
         make
         sudo make install
         chmod +x scripts/install-for-ci.sh
-        ./scripts/install-for-ci.sh
-        ros setup
+        ros install sbcl-bin/1.5.5
+        ros install rove
     - name: Test
       run: |
         export PATH=~/.roswell/bin:$PATH
