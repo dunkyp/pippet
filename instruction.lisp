@@ -13,6 +13,7 @@
            #:NOP #:LD #:JP #:JR #:INC #:DEC
            #:ADD #:SUB #:RLA #:RLCA #:RRA
            #:RRCA #:CPL #:OR #:AND #:XOR
+           #:PREFIX
            ; REGISTERS
            #:A #:B #:C #:D #:E #:F #:H #:L
            #:AF #:BC #:DE #:HL #:SP #:PC
@@ -604,13 +605,17 @@
           (cons (first L) (flatten (rest L)))
           (append (flatten (first L)) (flatten (rest L))))))
 
+(defun resolve-instruction-bytes (line)
+  (let* ((instruction (gethash (parse-instruction line) *instruction-map*))
+         (position (instruction-position instruction))
+         (bytes (instruction-bytes instruction)))
+    (if (> position 255)
+        (concatenate 'list (list #xCB (- position 255)) (loop for i from 2 upto bytes collect 0))
+        (concatenate 'list (list position) (loop for i from 2 upto bytes collect 0)))))
+
 (defun assemble (source &optional (pad 1))
   (let* ((lines (split-string source :separator '(#\Newline)))
          (text  (flatten (loop for line in lines
-                            for instruction = (gethash (parse-instruction line) *instruction-map*)
-                            for position = (instruction-position instruction)
-                            for bytes = (instruction-bytes instruction)
-                            collecting (concatenate 'list (list position)
-                                                    (loop for i from 2 upto bytes collect 0))))))
+                            collecting (resolve-instruction-bytes line)))))
     (make-array (+ (length text) pad) :element-type '(unsigned-byte 8)
                 :initial-contents (concatenate 'list text (loop for i from 1 to pad collecting 0)))))

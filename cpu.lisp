@@ -141,8 +141,10 @@
       ((eq (operand-immediate operand) nil) (write-byte-mmu value (funcall (symbol-function (operand-name operand)) cpu) mmu))
       (t (setf (slot-value cpu (operand-name operand)) value)))))
 
-(defun fetch-instruction (cpu mmu)
-  (decode-instruction (aref mmu (PC cpu))))
+(defun fetch-instruction (cpu mmu &optional (prefixed nil))
+  (decode-instruction (if prefixed
+                          (+ 255 (aref mmu (PC cpu)))
+                          (aref mmu (PC cpu)))))
 
 (defun next-instruction (instruction cpu)
   (incf (PC cpu) (instruction-bytes instruction)))
@@ -261,6 +263,9 @@
      ;; XOR
      (handle-xor-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'PREFIX)
+     (next-instruction instruction cpu)
+     (execute-instruction (fetch-instruction cpu mmu t) cpu mmu))
     (t (error "Unhandled opcode"))))
 
 (defun step-cpu (cpu mmu)
