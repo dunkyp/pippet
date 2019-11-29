@@ -20,6 +20,7 @@ jobs:
         ./configure
         make
         sudo make install
+        chmod +x scripts/install-for-ci.sh
         ./scripts/install-for-ci.sh
         ros setup
     - name: Test
