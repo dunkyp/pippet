@@ -26,5 +26,5 @@ jobs:
     - name: Test
       run: |
         export PATH=~/.roswell/bin:$PATH
-        cp -r pippet ~/.roswell/local-projects
-        rove pippet/tests/cpu.lisp
+        cp -r /home/runner/work/pippet/pippet ~/.roswell/local-projects
+        rove /home/runner/work/pippet/pippet/tests/cpu.lisp
