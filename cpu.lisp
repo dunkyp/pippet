@@ -143,7 +143,7 @@
 
 (defun fetch-instruction (cpu mmu &optional (prefixed nil))
   (decode-instruction (if prefixed
-                          (+ 255 (aref mmu (PC cpu)))
+                          (+ 256 (aref mmu (PC cpu)))
                           (aref mmu (PC cpu)))))
 
 (defun next-instruction (instruction cpu)
@@ -207,6 +207,28 @@
   (let ((value (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
     (setf (A cpu) (logxor (A cpu) value))))
 
+(defun read-immediate (immediate)
+  (parse-integer (subseq (string immediate) 1)))
+
+(defun handle-set-instruction (instruction cpu mmu)
+  (let ((position (read-immediate
+                   (operand-name (aref (instruction-operands instruction) 0))))
+        (destination (operand-name
+                      (aref (instruction-operands instruction) 1))))
+    (setf (ldb (byte 1 position) (slot-value cpu destination)) 1)))
+
+(defun handle-res-instruction (instruction cpu mmu)
+  (let ((position (read-immediate
+                   (operand-name (aref (instruction-operands instruction) 0))))
+        (destination (operand-name
+                      (aref (instruction-operands instruction) 1))))
+    (setf (ldb (byte 1 position) (slot-value cpu destination)) 0)))
+
+
+(defun handle-bit-instruction (insutrction cpu mmu))
+
+(defun handle-swap-instruction (instruction cpu mmu))
+
 (defun execute-instruction (instruction cpu mmu)
   (cond
     ((eq (instruction-mnemonic instruction) 'NOP)
@@ -264,9 +286,26 @@
      (handle-xor-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
     ((eq (instruction-mnemonic instruction) 'PREFIX)
+     ;; PREFIX
      (next-instruction instruction cpu)
      (execute-instruction (fetch-instruction cpu mmu t) cpu mmu))
-    (t (error "Unhandled opcode"))))
+    ((eq (instruction-mnemonic instruction) 'SET)
+     ;; SET
+     (handle-set-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'RES)
+     ;; RES
+     (handle-res-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'BIT)
+     ;; BIT
+     (handle-bit-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'SWAP)
+     ;; SWAP
+     (handle-swap-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    (t (break) (error "Unhandled opcode"))))
 
 (defun step-cpu (cpu mmu)
   (execute-instruction (fetch-instruction cpu mmu) cpu mmu))

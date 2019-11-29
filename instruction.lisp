@@ -13,7 +13,7 @@
            #:NOP #:LD #:JP #:JR #:INC #:DEC
            #:ADD #:SUB #:RLA #:RLCA #:RRA
            #:RRCA #:CPL #:OR #:AND #:XOR
-           #:PREFIX
+           #:PREFIX #:SET #:RES #:SWAP #:BIT
            ; REGISTERS
            #:A #:B #:C #:D #:E #:F #:H #:L
            #:AF #:BC #:DE #:HL #:SP #:PC
@@ -49,7 +49,7 @@
   "Gets instruction from opcode"
   (typecase opcode
     (string "a string")
-    (uint8 (aref +INSTRUCTIONS+ opcode))
+    (number (aref +INSTRUCTIONS+ opcode))
     (t (error opcode))))
 
 (defun aref-or-nil (array ref)

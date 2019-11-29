@@ -128,3 +128,24 @@
   (step-cpu *CPU* (assemble "XOR B"))
   (ok (= (PC *CPU*) 1))
   (ok (= (A *CPU*) #x1F)))
+
+(deftest set-instruction
+  (setf (PC *CPU*) 0)
+  (setf (B *CPU*) 0)
+  (step-cpu *CPU* (assemble "SET $2 B"))
+  (ok (= (PC *CPU*) 3))
+  (ok (= (B *CPU*) 4)))
+
+(deftest res-instruction
+  (setf (PC *CPU*) 0)
+  (setf (B *CPU*) 4)
+  (step-cpu *CPU* (assemble "RES $2 B"))
+  (ok (= (PC *CPU*) 3))
+  (ok (= (B *CPU*) 0)))
+
+(deftest swap-instruction
+  (setf (PC *CPU*) 0)
+  (setf (B *CPU*) #xEA)
+  (step-cpu *CPU* (assemble "SWAP B"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (B *CPU*) #xAE)))
