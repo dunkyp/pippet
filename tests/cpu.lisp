@@ -104,3 +104,27 @@
   (step-cpu *CPU* (assemble "CPL"))
   (ok (= (PC *CPU*) 1))
   (ok (= (A *CPU*) #xFE)))
+
+(deftest and-instruction
+  (setf (PC *CPU*) 0)
+  (setf (A *CPU*) #xF0)
+  (setf (B *CPU*) #xEF)
+  (step-cpu *CPU* (assemble "AND B"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (A *CPU*) #xE0)))
+
+(deftest or-instruction
+  (setf (PC *CPU*) 0)
+  (setf (A *CPU*) #xF0)
+  (setf (B *CPU*) #xEF)
+  (step-cpu *CPU* (assemble "OR B"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (A *CPU*) #xFF)))
+
+(deftest xor-instruction
+  (setf (PC *CPU*) 0)
+  (setf (A *CPU*) #xF0)
+  (setf (B *CPU*) #xEF)
+  (step-cpu *CPU* (assemble "XOR B"))
+  (ok (= (PC *CPU*) 1))
+  (ok (= (A *CPU*) #x1F)))

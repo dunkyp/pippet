@@ -193,6 +193,18 @@
 (defun handle-rra-instruction (cpu)
   (setf (A cpu) (rotate-right (A cpu) 1)))
 
+(defun handle-and-instruction (instruction cpu mmu)
+  (let ((value (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
+    (setf (A cpu) (logand (A cpu) value))))
+
+(defun handle-or-instruction (instruction cpu mmu)
+  (let ((value (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
+    (setf (A cpu) (logior (A cpu) value))))
+
+(defun handle-xor-instruction (instruction cpu mmu)
+  (let ((value (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
+    (setf (A cpu) (logxor (A cpu) value))))
+
 (defun execute-instruction (instruction cpu mmu)
   (cond
     ((eq (instruction-mnemonic instruction) 'NOP)
@@ -220,18 +232,34 @@
      (handle-add-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
     ((eq (instruction-mnemonic instruction) 'SUB)
+     ;; SUB
      (handle-sub-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
     ((or (eq (instruction-mnemonic instruction) 'RLCA)
          (eq (instruction-mnemonic instruction) 'RLA))
+     ;; RL
      (handle-rla-instruction cpu)
      (next-instruction instruction cpu))
     ((or (eq (instruction-mnemonic instruction) 'RRCA)
          (eq (instruction-mnemonic instruction) 'RRA))
+     ;; RR
      (handle-rra-instruction cpu)
      (next-instruction instruction cpu))
     ((eq (instruction-mnemonic instruction) 'CPL)
+     ;; CPL
      (setf (A cpu) (logxor #xFF (A cpu)))
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'AND)
+     ;; AND
+     (handle-and-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'OR)
+     ;; OR
+     (handle-or-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'XOR)
+     ;; XOR
+     (handle-xor-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
     (t (error "Unhandled opcode"))))
 
