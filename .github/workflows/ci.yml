@@ -1,0 +1,28 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install sbcl
+      run: sudo apt-get install sbcl
+    - name: Install roswell
+      run: |
+        sudo apt-get -y install git build-essential automake libcurl4-openssl-dev
+        git clone -b release https://github.com/roswell/roswell.git
+        cd roswell
+        sh bootstrap
+        ./configure
+        make
+        sudo make install
+        ros setup
+    - name: Test
+      run: |
+        export PATH=~/.roswell/bin:$PATH
+        cp -r ~/pippet ~/.roswell/local-projects
+        rove ~/pippet/tests/cpu.lisp
