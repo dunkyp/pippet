@@ -17,5 +17,6 @@ jobs:
         echo '(load "quicklisp.lisp")(quicklisp-quickstart:install)' > install.lisp
         echo '(ql:quickload :rove)(rove:run :pippet/tests)' > test.lisp
         sbcl --load quicklisp.lisp --script install.lisp
+        echo '(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))) (when (probe-file quicklisp-init)(load quicklisp-init)))' >> ~/.sbclrc
         cp -r /home/runner/work/pippet/pippet ~/quicklisp/local-projects
         sbcl --script test.lisp
