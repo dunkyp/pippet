@@ -147,5 +147,5 @@
   (setf (PC *CPU*) 0)
   (setf (B *CPU*) #xEA)
   (step-cpu *CPU* (assemble "SWAP B"))
-  (ok (= (PC *CPU*) 1))
+  (ok (= (PC *CPU*) 3))
   (ok (= (B *CPU*) #xAE)))

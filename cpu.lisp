@@ -1,3 +1,6 @@
+;;(funcall (fdefinition `(setf ,*AF*)) 10 *CPU*) ;; interesting
+;; AF = 'AF or 'BC or 'A
+
 (in-package :cl-user)
 
 (defpackage #:pippet
@@ -139,7 +142,7 @@
       ((eq name 'a8) (write-byte-mmu value (read-byte-mmu (+ (PC cpu) offset) mmu) mmu))
       ((eq name 'a16) (write-word-mmu value (read-byte-mmu (+ (PC cpu) offset) mmu) mmu))
       ((eq (operand-immediate operand) nil) (write-byte-mmu value (funcall (symbol-function (operand-name operand)) cpu) mmu))
-      (t (setf (slot-value cpu (operand-name operand)) value)))))
+      (t (funcall (fdefinition `(setf ,(operand-name operand))) value cpu)))))
 
 (defun fetch-instruction (cpu mmu &optional (prefixed nil))
   (decode-instruction (if prefixed
@@ -213,21 +216,25 @@
 (defun handle-set-instruction (instruction cpu mmu)
   (let ((position (read-immediate
                    (operand-name (aref (instruction-operands instruction) 0))))
-        (destination (operand-name
-                      (aref (instruction-operands instruction) 1))))
-    (setf (ldb (byte 1 position) (slot-value cpu destination)) 1)))
+        (operand (aref (instruction-operands instruction) 1)))
+    (set-value (dpb 1 (byte 1 position) (get-value operand 1 cpu mmu)) operand 1 cpu mmu)))
 
 (defun handle-res-instruction (instruction cpu mmu)
   (let ((position (read-immediate
                    (operand-name (aref (instruction-operands instruction) 0))))
-        (destination (operand-name
-                      (aref (instruction-operands instruction) 1))))
-    (setf (ldb (byte 1 position) (slot-value cpu destination)) 0)))
+        (operand (aref (instruction-operands instruction) 1)))
+    (set-value (dpb 0 (byte 1 position) (get-value operand 1 cpu mmu)) operand 1 cpu mmu)))
 
 
 (defun handle-bit-instruction (insutrction cpu mmu))
 
-(defun handle-swap-instruction (instruction cpu mmu))
+(defun handle-swap-instruction (instruction cpu mmu)
+  (let* ((operand (aref (instruction-operands instruction) 0))
+         (value (get-value operand 1 cpu mmu))
+         (new-value value))
+    (setf new-value (dpb (ldb (byte 4 0) value) (byte 4 4) new-value))
+    (setf new-value (dpb (ldb (byte 4 4) value) (byte 4 0) new-value))
+    (set-value new-value operand 1 cpu mmu)))
 
 (defun execute-instruction (instruction cpu mmu)
   (cond
