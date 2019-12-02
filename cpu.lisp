@@ -1,6 +1,3 @@
-;;(funcall (fdefinition `(setf ,*AF*)) 10 *CPU*) ;; interesting
-;; AF = 'AF or 'BC or 'A
-
 (in-package :cl-user)
 
 (defpackage #:pippet
@@ -96,14 +93,9 @@
   (dpb (aref mmu offset) (byte 16 8) (aref mmu (+ offset 1))))
 
 (defun op-push (location cpu mmu)
-  (setf (SP cpu) (- (SP cpu) 2))
+  (decf (SP cpu) 2)
   (write-word-mmu (funcall (symbol-function location) cpu)
                   (SP cpu) mmu))
-
-(defun op-pop (location cpu mmu)
-  (let ((value (read-word-mmu (SP cpu) mmu)))
-    (incf (SP cpu) 2)
-    `(setf (,(symbol-function location) cpu) ,value)))
 
 (defun op-call (cpu mmu)
   (let ((address (read-word-mmu (+ 1 (PC cpu)) mmu)))
@@ -236,6 +228,17 @@
     (setf new-value (dpb (ldb (byte 4 4) value) (byte 4 0) new-value))
     (set-value new-value operand 1 cpu mmu)))
 
+(defun handle-push-instruction (instruction cpu mmu)
+  (let ((operand (aref (instruction-operands instruction) 0)))
+    (op-push (operand-name operand) cpu mmu)))
+
+(defun handle-pop-instruction (instruction cpu mmu)
+  (let* ((operand (aref (instruction-operands instruction) 0))
+         (value (read-word-mmu (SP cpu) mmu)))
+    (incf (SP cpu) 2)
+    (set-value value operand 1 cpu mmu)))
+
+
 (defun execute-instruction (instruction cpu mmu)
   (cond
     ((eq (instruction-mnemonic instruction) 'NOP)
@@ -311,6 +314,13 @@
     ((eq (instruction-mnemonic instruction) 'SWAP)
      ;; SWAP
      (handle-swap-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'PUSH)
+     ;; PUSH
+     (handle-push-instruction instruction cpu mmu)
+     (next-instruction instruction cpu))
+    ((eq (instruction-mnemonic instruction) 'POP)
+     (handle-pop-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
     (t (break) (error "Unhandled opcode"))))
 

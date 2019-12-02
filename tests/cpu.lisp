@@ -149,3 +149,22 @@
   (step-cpu *CPU* (assemble "SWAP B"))
   (ok (= (PC *CPU*) 3))
   (ok (= (B *CPU*) #xAE)))
+
+(deftest push-instruction
+  (setf (PC *CPU*) 0
+        (BC *CPU*) #xFFAA
+        (SP *CPU*) 20
+        *mmu* (assemble "PUSH BC" 30))
+  (step-cpu *CPU* *mmu*)
+  (ok (= (SP *CPU*) 18))
+  (ok (= (aref *MMU* 18) #xFF))
+  (ok (= (aref *MMU* 19) #xAA)))
+
+(deftest pop-instruction
+  (setf (PC *CPU*) 0
+        (BC *CPU*) #xFFFF
+        (SP *CPU*) 18
+        *mmu* (assemble "POP BC" 30))
+  (step-cpu *CPU* *MMU*)
+  (ok (= (SP *CPU*) 20))
+  (ok (= (BC *CPU*) #x0000)))
