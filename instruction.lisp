@@ -8,7 +8,7 @@
            #:instruction-mnemonic #:instruction-bytes
            #:instruction-operands
            #:operand-name #:operand-immediate
-           #:operand-bytes
+           #:operand-bytes #:operand-decrement
            ; OPCODES
            #:NOP #:LD #:JP #:JR #:INC #:DEC
            #:ADD #:SUB #:RLA #:RLCA #:RRA
@@ -18,9 +18,12 @@
            #:A #:B #:C #:D #:E #:F #:H #:L
            #:AF #:BC #:DE #:HL #:SP #:PC
            ; MEMORY
-           #:a8 #:a16 #:d8 #:d16
+           #:a8 #:a16 #:d8 #:d16 #:r8
            #:ZERO #:CARRY #:NOT-ZERO #:NOT-CARRY
-           #:assemble #:*instruction-map*))
+           #:assemble #:*instruction-map*
+           ;; FLAGS
+           #:instruction-zero #:instruction-subtraction
+           #:instruction-half-carry #:instruction-carry))
 (in-package #:pippet/instruction)
 
 (defstruct operand
@@ -40,8 +43,7 @@
   half-carry
   carry
   operands
-  position
-)
+  position)
 
 (deftype uint8 () '(unsigned-byte 8))
 

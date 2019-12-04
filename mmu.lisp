@@ -1,0 +1,5 @@
+(defun load-rom (filename)
+  (with-open-file (stream filename :element-type '(unsigned-byte 8))
+    (let ((seq (make-mmu #xFFFF)))
+      (read-sequence seq stream)
+      seq)))

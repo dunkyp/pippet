@@ -14,7 +14,8 @@
    #:F #:H #:SP #:PC
    #:AF #:BC #:DE #:HL
    #:get-value #:set-value
-   #:step-cpu #:run-cpu))
+   #:step-cpu #:run-cpu
+   #:zero-flag))
 
 (in-package :pippet)
 
@@ -38,11 +39,13 @@
      (F '(unsigned-byte 8))
      (H '(unsigned-byte 8))
      (L '(unsigned-byte 8))
-     (SP '(unsigned-byte 16))
+     (SP u16)
      (PC '(unsigned-byte 16))))
 
 (defun make-mmu (length)
   (make-array length :element-type '(unsigned-byte 8)))
+
+(deftype u16 () '(unsigned-byte 16))
 
 (defmacro defregister-pair (hi lo)
   (let ((name (find-symbol (concatenate 'string (symbol-name hi) (symbol-name lo)))))
@@ -61,23 +64,23 @@
 (defregister-pair D E)
 (defregister-pair H L)
 
-(defun set-bit (bit set cpu)
+(defun set-flag-bit (bit set cpu)
   (if set
       (setf (F cpu) (logior (ash 1 bit) (F cpu)))
       (setf (F cpu) (logandc1 (ash 1 bit) (F cpu)))))
 
-(defun zero (cpu) (logbitp 7 (F cpu)))
-(defun (setf zero) (set cpu)
-  (set-bit 7 set cpu))
-(defun subtraction (cpu) (logbitp 6 (F cpu)))
-(defun (setf subtraction) (set cpu)
-  (set-bit 6 set cpu))
-(defun half-carry (cpu) (logbitp 5 (F cpu)))
-(defun (setf half-carry) (set cpu)
-  (set-bit 5 set cpu))
-(defun carry (cpu) (logbitp 4 (F cpu)))
-(defun (setf carry) (set cpu)
-  (set-bit 4 set cpu))
+(defun zero-flag (cpu) (logbitp 7 (F cpu)))
+(defun (setf zero-flag) (set cpu)
+  (set-flag-bit 7 set cpu))
+(defun subtraction-flag (cpu) (logbitp 6 (F cpu)))
+(defun (setf subtraction-flag) (set cpu)
+  (set-flag-bit 6 set cpu))
+(defun half-carry-flag (cpu) (logbitp 5 (F cpu)))
+(defun (setf half-carry-flag) (set cpu)
+  (set-flag-bit 5 set cpu))
+(defun carry-flag (cpu) (logbitp 4 (F cpu)))
+(defun (setf carry-flag) (set cpu)
+  (set-flag-bit 4 set cpu))
 
 (defun write-byte-mmu (byte offset mmu)
   (setf (aref mmu offset) byte))
@@ -87,10 +90,12 @@
   (setf (aref mmu (1+ offset)) (ldb (byte 8 0) word)))
 
 (defun read-byte-mmu (offset mmu)
-  (aref mmu offset))
+  (the (unsigned-byte 8)
+       (aref mmu offset)))
 
 (defun read-word-mmu (offset mmu)
-  (dpb (aref mmu offset) (byte 16 8) (aref mmu (+ offset 1))))
+  (the (unsigned-byte 16)
+       (dpb (aref mmu (+ offset 1)) (byte 16 8) (aref mmu offset))))
 
 (defun op-push (location cpu mmu)
   (decf (SP cpu) 2)
@@ -120,6 +125,7 @@
   (let* ((name (operand-name operand))
          (immediate-value (cond
                             ((eq name 'a8) (read-byte-mmu (+ offset (PC cpu)) mmu))
+                            ((eq name 'r8) (read-byte-mmu (+ offset (PC cpu)) mmu))
                             ((eq name 'a16) (read-word-mmu (+ offset (PC cpu)) mmu))
                             ((eq name 'd8) (read-byte-mmu (+ offset (PC cpu)) mmu))
                             ((eq name 'd16) (read-word-mmu (+ offset (PC cpu)) mmu))
@@ -149,13 +155,62 @@
          (source-operand (aref operands 1))
          (destination-operand (aref operands 0))
          (source-value (get-value source-operand (+ 1 (operand-bytes destination-operand)) cpu mmu)))
-    (set-value source-value destination-operand 1 cpu mmu)))
+    (set-value source-value destination-operand 1 cpu mmu)
+    (if (operand-decrement destination-operand)
+        (funcall (fdefinition `(setf ,(operand-name destination-operand)))
+                 (funcall (symbol-function (operand-name destination-operand)) cpu)
+                 cpu))))
 
 (defun handle-jp-instruction (instruction cpu mmu)
-  (setf (PC cpu) (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
+  (let* ((operands (instruction-operands instruction))
+         (destination-operand (if (aref operands 1)
+                                  (aref operands 1)
+                                  (aref operands 0)))
+         (condition (if (aref operands 1)
+                        (aref operands 0)
+                        nil)))
+    (if
+     (or
+      (not condition)
+      (and (eq condition 'NOT-ZERO) (not (zero-flag cpu)))
+      (and (eq condition 'ZERO) (zero-flag cpu))
+      (and (eq condition 'NOT-CARRY) (not (carry-flag cpu)))
+      (and (eq condition 'CARRY) (carry-flag cpu))
+      (and (eq condition 'NOT-HALF-CARRY) (not (half-carry-flag cpu)))
+      (and (eq condition 'HALF-CARRY) (half-carry-flag cpu))
+      (and (eq condition 'NOT-SUBTRACTION) (not (subtraction-flag cpu)))
+      (and (eq condition 'SUBTRACTION) (subtraction-flag cpu)))
+     (setf (PC cpu) (get-value destination-operand 1 cpu mmu)))))
+
+(defun chop-8 (value)
+  (ldb (byte 8 0) value))
+
+(defun unsigned-to-signed-8 (i)
+  (if (logbitp 7 i)
+      (- (chop-8 (1+ (lognot i))))
+      i))
 
 (defun handle-jr-instruction (instruction cpu mmu)
-  (incf (PC cpu) (get-value (aref (instruction-operands instruction) 0) 1 cpu mmu)))
+  (let* ((operands (instruction-operands instruction))
+         (destination-operand (if (aref operands 1)
+                                  (aref operands 1)
+                                  (aref operands 0)))
+         (condition (if (aref operands 1)
+                        (operand-name (aref operands 0))
+                        nil)))
+    (if
+     (or
+      (not condition)
+      (and (eq condition 'NOT-ZERO) (not (zero-flag cpu)))
+      (and (eq condition 'ZERO) (zero-flag cpu))
+      (and (eq condition 'NOT-CARRY) (not (carry-flag cpu)))
+      (and (eq condition 'CARRY) (carry-flag cpu))
+      (and (eq condition 'NOT-HALF-CARRY) (not (half-carry-flag cpu)))
+      (and (eq condition 'HALF-CARRY) (half-carry-flag cpu))
+      (and (eq condition 'NOT-SUBTRACTION) (not (subtraction-flag cpu)))
+      (and (eq condition 'SUBTRACTION) (subtraction-flag cpu)))
+     (incf (PC cpu) (+ (instruction-bytes instruction) (unsigned-to-signed-8 (get-value destination-operand 1 cpu mmu))))
+     (next-instruction instruction cpu))))
 
 (defun handle-inc-instruction (instruction cpu mmu)
   (let* ((operand (aref (instruction-operands instruction) 0))
@@ -165,17 +220,23 @@
 (defun handle-add-instruction (instruction cpu mmu)
   (let* ((operand (aref (instruction-operands instruction) 1))
          (value (get-value operand 1 cpu mmu)))
-    (incf (A cpu) value)))
+    (setf (A cpu) (logand (+ (A cpu) value) #xFF))
+    (if (= (A cpu) 0)
+        (setf (zero-flag cpu) 1))))
 
 (defun handle-sub-instruction (instruction cpu mmu)
   (let* ((operand (aref (instruction-operands instruction) 0))
          (value (get-value operand 1 cpu mmu)))
-    (decf (A cpu) value)))
+    (setf (A cpu) (logand (- (A cpu) value) #xFF))
+    (if (= (A cpu) 0)
+        (setf (zero-flag cpu) 1))))
 
 (defun handle-dec-instruction (instruction cpu mmu)
   (let* ((operand (aref (instruction-operands instruction) 0))
          (value (get-value operand 1 cpu mmu)))
-    (set-value (- value 1) operand 1 cpu mmu)))
+    (set-value (logand (- value 1) #xFF) operand 1 cpu mmu) ;; needs to check for 16 bit values here
+    (if (= (funcall (symbol-function (operand-name operand)) cpu) 0)
+        (setf (zero-flag cpu) 1))))
 
 
 (defun rotate-left (integer amount)
@@ -240,6 +301,8 @@
 
 
 (defun execute-instruction (instruction cpu mmu)
+  (print (describe cpu))
+  (print (describe instruction))
   (cond
     ((eq (instruction-mnemonic instruction) 'NOP)
      ;; NOP
@@ -322,15 +385,32 @@
     ((eq (instruction-mnemonic instruction) 'POP)
      (handle-pop-instruction instruction cpu mmu)
      (next-instruction instruction cpu))
-    (t (break) (error "Unhandled opcode"))))
+    (t (break) (error "Unhandled opcode")))
+  ;; Handle (un)set flags
+  (if (eq (instruction-zero instruction) 'SET)
+      (setf (zero-flag cpu) 1))
+  (if (eq (instruction-zero instruction) 'UNSET)
+      (setf (zero-flag cpu) 0))
+  (if (eq (instruction-subtraction instruction) 'SET)
+      (setf (subtraction-flag cpu) 1))
+  (if (eq (instruction-subtraction instruction) 'UNSET)
+      (setf (subtraction-flag cpu) 0))
+  (if (eq (instruction-half-carry instruction) 'SET)
+      (setf (half-carry-flag cpu) 1))
+  (if (eq (instruction-half-carry instruction) 'UNSET)
+      (setf (half-carry-flag cpu) 0))
+  (if (eq (instruction-carry instruction) 'SET)
+      (setf (zero-flag cpu) 1))
+  (if (eq (instruction-carry instruction) 'UNSET)
+      (setf (zero-flag cpu) 0)))
+
+
 
 (defun step-cpu (cpu mmu)
   (execute-instruction (fetch-instruction cpu mmu) cpu mmu))
 
-(defun run-cpu (cpu mmu)
+(defun run-cpu (cpu mmu )
   (reset cpu)
-  (loop do (step-cpu cpu mmu)))
-
-(defun load-rom (filename mmu)
-  (let ((stream (open filename :element-type '(unsigned-byte 8))))
-    (read-sequence mmu stream)))
+  (loop  for i from 0
+     do (step-cpu cpu mmu)
+     while (not (= (PC cpu) #x021b))))
